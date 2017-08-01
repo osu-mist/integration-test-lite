@@ -59,7 +59,7 @@ if __name__ == '__main__':
     bad_apis = get_bad_apis()
 
     if len(bad_apis) > 0:
-        print "The following APIs returned errors:"
+        print "The following API(s) returned errors:"
         pretty_print(bad_apis)
         sys.exit(1)
     
