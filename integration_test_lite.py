@@ -14,8 +14,12 @@ def get_access_token():
     return 'Bearer ' + request.json()["access_token"]
 
 # Basic http request with url and query parameters
-def basic_request(url, params, verb="get"):
-    headers = {'Authorization': access_token}
+def basic_request(url, params, needs_access_token, verb="get"):
+    headers = {}
+
+    if (needs_access_token):
+        headers['Authorization'] = access_token
+
     request = requests.request(verb, url, params=params, headers=headers)
     return request
 
@@ -27,32 +31,24 @@ def get_bad_apis():
         query_params = endpoint["query_params"]
         query_params[uuid.uuid4().hex] = uuid.uuid4().hex
 
-        request = basic_request(endpoint["base_url"], query_params)
+        request = basic_request(endpoint["base_url"], query_params, endpoint["needs_access_token"])
         response_code = request.status_code
         
         if response_code is not 200:
             api_info = endpoint
             api_info["response_code"] = response_code
-            api_info["response_body"] = request.json()
+            
+            try:
+                api_info["response_body"] = request.json()
+            except ValueError as error:
+                api_info["response_body"] = str(error)
+            
             bad_apis.append(api_info)
 
     return bad_apis
 
 if __name__ == '__main__':
-    options_tpl = ('-i', 'config_path')
-    del_list = []
-
-    for i,config_path in enumerate(sys.argv):
-        if config_path in options_tpl:
-            del_list.append(i)
-            del_list.append(i+1)
-
-    del_list.reverse()
-
-    for i in del_list:
-        del sys.argv[i]
-
-    config_data_file = open(config_path)
+    config_data_file = open(sys.argv[1])
     config_json = json.load(config_data_file)
 
     access_token = get_access_token()

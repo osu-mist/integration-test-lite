@@ -7,11 +7,13 @@
             "base_url": "https://host.com/foo",
             "query_params": {
                     "param": "value"
-            }
+            },
+            "needs_access_token": true
         },
         {
             "base_url": "https://host.com/this_one_has_no_query_params",
-            "query_params": {}
+            "query_params": {},
+            "needs_access_token": false
         }
     ]
 }
