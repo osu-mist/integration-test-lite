@@ -6,7 +6,7 @@ import uuid
 
 # Helper function to pretty print a list or dictionary
 def pretty_print(print_me):
-    print json.dumps(print_me, indent=4, sort_keys=True)
+    print(json.dumps(print_me, indent=4, sort_keys=True))
 
 
 # Helper function to get an access token
@@ -14,10 +14,11 @@ def get_access_token():
     post_data = {
         'client_id': config_json["client_id"],
         'client_secret': config_json["client_secret"],
-        'grant_type': 'client_credentials'}
+        'grant_type': 'client_credentials'
+    }
     request = requests.post(config_json["token_api"], data=post_data)
 
-    return 'Bearer ' + request.json()["access_token"]
+    return f'Bearer {request.json()["access_token"]}'
 
 
 # Basic http request with url and query parameters
@@ -38,13 +39,18 @@ def get_bad_apis():
 
     for endpoint in config_json["target_endpoints"]:
         query_params = endpoint["query_params"]
+        # Add random query parameter with random value to bypass caching
         query_params[uuid.uuid4().hex] = uuid.uuid4().hex
 
         request = basic_request(
             endpoint["base_url"], query_params, endpoint["needs_access_token"])
         response_code = request.status_code
 
-        if response_code != 200:
+        allowed_response_codes = [200]
+        if 'allow_400' in endpoint and endpoint['allow_400']:
+            allowed_response_codes.append(400)
+
+        if response_code not in allowed_response_codes:
             api_info = endpoint
             api_info["response_code"] = response_code
 
@@ -66,6 +72,6 @@ if __name__ == '__main__':
     bad_apis = get_bad_apis()
 
     if len(bad_apis) > 0:
-        print "The following API(s) returned errors:"
+        print("The following API(s) returned errors:")
         pretty_print(bad_apis)
         sys.exit(1)
