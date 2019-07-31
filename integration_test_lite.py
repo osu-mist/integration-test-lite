@@ -4,7 +4,6 @@ import sys
 import uuid
 
 import aiohttp
-import requests
 
 
 # Helper function to pretty print a list or dictionary
@@ -13,15 +12,19 @@ def pretty_print(print_me):
 
 
 # Helper function to get an access token
-def get_access_token():
+async def get_access_token():
     post_data = {
         'client_id': config_json["client_id"],
         'client_secret': config_json["client_secret"],
         'grant_type': 'client_credentials'
     }
-    request = session.post(config_json["token_api"], data=post_data)
+    request = await session.post(
+        config_json["token_api"],
+        data=post_data,
+    )
+    response = await request.json()
 
-    return f'Bearer {request.json()["access_token"]}'
+    return f'Bearer {response["access_token"]}'
 
 
 # Basic http request with url and query parameters
@@ -31,9 +34,7 @@ def basic_request(url, params, needs_access_token, verb="get"):
     if (needs_access_token):
         headers['Authorization'] = access_token
 
-    request = session.request(
-        verb, url, params=params, headers=headers, ssl=False
-    )
+    request = session.request(verb, url, params=params, headers=headers)
     return request
 
 
@@ -76,7 +77,6 @@ async def get_bad_apis():
     return bad_apis
 
 
-# if __name__ == '__main__':
 async def main():
     config_data_file = open(sys.argv[1])
     global config_json
@@ -85,17 +85,14 @@ async def main():
     config_json['target_endpoints'] = config_json['target_endpoints'] * 10
 
     global session
-    # session = requests.Session()
-    # session.verify = False
-    # session.auth = ('username', 'password')
-    auth = aiohttp.BasicAuth('username', 'password')
-    session = aiohttp.ClientSession(auth=auth)
+    session = aiohttp.ClientSession()
 
     global access_token
-    # access_token = get_access_token()
-    access_token = None
-    bad_apis = await get_bad_apis()
-    await session.close()
+    try:
+        access_token = await get_access_token()
+        bad_apis = await get_bad_apis()
+    finally:
+        await session.close()
 
     if len(bad_apis) > 0:
         print("The following API(s) returned errors:")
