@@ -6,8 +6,11 @@ import uuid
 import aiohttp
 
 
-# Helper function to pretty print a list or dictionary
 def pretty_print(print_me):
+    """Helper function to pretty print a list or dictionary
+
+    :param print_me: The list/dictionary to be printed
+    """
     print(json.dumps(print_me, indent=4, sort_keys=True))
 
 
@@ -23,8 +26,8 @@ class IntegrationTestLite:
     async def __aexit__(self, *excinfo):
         await self.session.close()
 
-    # Helper function to set the access token
     async def set_access_token(self):
+        """Helper function to set the access token"""
         session = self.session
         config_json = self.config_json
         post_data = {
@@ -37,8 +40,15 @@ class IntegrationTestLite:
         response = await request.json()
         self.access_token = f'Bearer {response["access_token"]}'
 
-    # Basic http request with url and query parameters
     def basic_request(self, url, params, needs_access_token, verb="get"):
+        """Basic http request with url and query parameters
+
+        :param str url: Request url
+        :param dict params: Request params
+        :param bool needs_access_token: True if request required an access
+                                        token
+        :param str verb: HTTP request verb
+        """
         session = self.session
 
         headers = {}
@@ -49,6 +59,12 @@ class IntegrationTestLite:
         return request
 
     async def bad_response(self, endpoint):
+        """Tests an endpoint for an unexpected response
+
+        :param dict endpoint: The endpoint object from the config file
+        :returns: None if the response was ok. Otherwise, an error object
+        :rtype: dict
+        """
         query_params = endpoint["query_params"]
         # Add random query parameter with random value to bypass caching
         query_params[uuid.uuid4().hex] = uuid.uuid4().hex
@@ -75,6 +91,11 @@ class IntegrationTestLite:
             return api_info
 
     async def get_bad_apis(self):
+        """Tests all endpoints and returns a list of errors
+
+        :returns: List of errors
+        :rtype: list
+        """
         endpoints = self.config_json['target_endpoints']
 
         # Execute all tests in parallel
