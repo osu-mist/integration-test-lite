@@ -31,32 +31,32 @@ class IntegrationTestLite:
         session = self.session
         config_json = self.config_json
         post_data = {
-            'client_id': config_json["client_id"],
-            'client_secret': config_json["client_secret"],
+            'client_id': config_json['client_id'],
+            'client_secret': config_json['client_secret'],
             'grant_type': 'client_credentials'
         }
 
-        request = await session.post(config_json["token_api"], data=post_data)
-        response = await request.json()
-        self.access_token = f'Bearer {response["access_token"]}'
+        response = await session.post(config_json['token_api'], data=post_data)
+        json = await response.json()
+        self.access_token = f"Bearer {json['access_token']}"
 
-    def basic_request(self, url, params, needs_access_token, verb="get"):
+    def basic_request(self, url, params, needs_access_token, method='get'):
         """Basic http request with url and query parameters
 
         :param str url: Request url
         :param dict params: Request params
         :param bool needs_access_token: True if request required an access
                                         token
-        :param str verb: HTTP request verb
+        :param str method: HTTP request method
+        :returns: An awaitable HTTP response
         """
         session = self.session
 
         headers = {}
-        if (needs_access_token):
+        if needs_access_token:
             headers['Authorization'] = self.access_token
 
-        request = session.request(verb, url, params=params, headers=headers)
-        return request
+        return session.request(method, url, params=params, headers=headers)
 
     async def bad_response(self, endpoint):
         """Tests an endpoint for an unexpected response
@@ -65,29 +65,29 @@ class IntegrationTestLite:
         :returns: None if the response was ok. Otherwise, an error object
         :rtype: dict
         """
-        query_params = endpoint["query_params"]
+        query_params = endpoint['query_params']
         # Add random query parameter with random value to bypass caching
         query_params[uuid.uuid4().hex] = uuid.uuid4().hex
 
-        request = await self.basic_request(
-            endpoint["base_url"],
+        response = await self.basic_request(
+            endpoint['base_url'],
             query_params,
-            endpoint["needs_access_token"]
+            endpoint['needs_access_token']
         )
-        response_code = request.status
+        response_code = response.status
 
         allowed_response_codes = [200]
-        if 'allow_400' in endpoint and endpoint['allow_400']:
+        if endpoint.get('allow_400'):
             allowed_response_codes.append(400)
 
         if response_code not in allowed_response_codes:
             api_info = endpoint
-            api_info["response_code"] = response_code
+            api_info['response_code'] = response_code
 
             try:
-                api_info["response_body"] = await request.json()
+                api_info['response_body'] = await response.json()
             except ValueError as error:
-                api_info["response_body"] = str(error)
+                api_info['response_body'] = str(error)
             return api_info
 
     async def get_bad_apis(self):
@@ -111,8 +111,8 @@ async def main():
         await integration_test_lite.set_access_token()
         bad_apis = await integration_test_lite.get_bad_apis()
 
-        if len(bad_apis) > 0:
-            print("The following API(s) returned errors:")
+        if bad_apis:
+            print('The following API(s) returned errors:')
             pretty_print(bad_apis)
             sys.exit(1)
 
