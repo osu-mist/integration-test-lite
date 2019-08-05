@@ -86,8 +86,11 @@ class IntegrationTestLite:
 
             try:
                 api_info['response_body'] = await response.json()
-            except ValueError as error:
-                api_info['response_body'] = str(error)
+            except Exception as error:
+                api_info['response_body'] = {
+                    'raw': await response.text(),
+                    'error': str(error)
+                }
             return api_info
 
     async def get_bad_apis(self):
