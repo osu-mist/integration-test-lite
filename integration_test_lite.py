@@ -37,8 +37,8 @@ class IntegrationTestLite:
         }
 
         response = await session.post(config_json['token_api'], data=post_data)
-        json = await response.json()
-        self.access_token = f"Bearer {json['access_token']}"
+        response_body = await response.json()
+        self.access_token = f"Bearer {response_body['access_token']}"
 
     def basic_request(self, url, params, needs_access_token, method='get'):
         """Basic http request with url and query parameters
