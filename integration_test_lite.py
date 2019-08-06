@@ -96,7 +96,7 @@ class IntegrationTestLite:
             return api_info
         else:
             query_param_string = urlencode(query_params)
-            print(f"    [{response_code}] {url}?{query_param_string}")
+            print(f'    [{response_code}] {url}?{query_param_string}')
 
     async def get_bad_apis(self):
         """Tests all endpoints and returns a list of errors
