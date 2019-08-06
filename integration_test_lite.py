@@ -1,6 +1,7 @@
 import asyncio
 import json
 import sys
+from urllib.parse import urlencode
 import uuid
 
 import aiohttp
@@ -69,8 +70,9 @@ class IntegrationTestLite:
         # Add random query parameter with random value to bypass caching
         query_params[uuid.uuid4().hex] = uuid.uuid4().hex
 
+        url = endpoint['base_url']
         response = await self.basic_request(
-            endpoint['base_url'],
+            url,
             query_params,
             endpoint['needs_access_token']
         )
@@ -92,6 +94,9 @@ class IntegrationTestLite:
                     'error': str(error)
                 }
             return api_info
+        else:
+            query_param_string = urlencode(query_params)
+            print(f'    [{response_code}] {url}?{query_param_string}')
 
     async def get_bad_apis(self):
         """Tests all endpoints and returns a list of errors
@@ -101,10 +106,12 @@ class IntegrationTestLite:
         """
         endpoints = self.config_json['target_endpoints']
 
+        print('Passing cases:')
         # Execute all tests in parallel
         results = await asyncio.gather(
             *[self.bad_response(endpoint) for endpoint in endpoints]
         )
+        print()
         # Return all results that weren't None
         return [result for result in results if result]
 
