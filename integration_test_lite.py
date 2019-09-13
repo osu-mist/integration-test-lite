@@ -1,5 +1,4 @@
 import asyncio
-from datetime import date
 import json
 import re
 import sys
@@ -23,40 +22,11 @@ class IntegrationTestLite:
         self.config_json = json.load(config_data_file)
         self.session = aiohttp.ClientSession()
 
-        self.textbooks_api_config_helper()
-
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, *excinfo):
         await self.session.close()
-
-    def textbooks_api_config_helper(self):
-        """Modifies any textbook API endpoints to use the current term and
-        academic year so a valid query can be made"""
-
-        term_months = {
-            'Winter': [12, 1, 2],
-            'Spring': [3, 4, 5],
-            'Summer': [6, 7, 8],
-            'Fall': [9, 10, 11],
-        }
-        today = date.today()
-        academic_year = str(today.year)
-        term = None
-        for key, val in term_months.items():
-            if today.month in val:
-                term = key
-                break
-
-        textbooks_url_regex = r'.*/textbooks'
-        textbook_endpoints = list(filter(
-            lambda x: re.match(textbooks_url_regex, x['base_url']),
-            self.config_json['target_endpoints']
-        ))
-        for endpoint in textbook_endpoints:
-            endpoint['query_params']['academicYear'] = academic_year
-            endpoint['query_params']['term'] = term
 
     async def set_access_token(self):
         """Helper function to set the access token"""
@@ -102,6 +72,24 @@ class IntegrationTestLite:
         query_params[uuid.uuid4().hex] = uuid.uuid4().hex
 
         url = endpoint['base_url']
+        api_info = endpoint
+
+        # Handle textbooks api request
+        textbooks_url_regex = r'.*/textbooks'
+        if re.match(textbooks_url_regex, url):
+            try:
+                terms_url = 'https://osu.verbacompare.com/compare/courses'
+                terms_response = await self.basic_request(terms_url, {}, False)
+                terms_json = await terms_response.json()
+                query_params['academicYear'], query_params['term'] = (
+                    terms_json[0]['id'].split('-')
+                )
+            except Exception as error:
+                api_info['error'] = (
+                    f'Exception when querying textbooks terms: {str(error)}'
+                )
+                return api_info
+
         response = await self.basic_request(
             url,
             query_params,
@@ -110,7 +98,6 @@ class IntegrationTestLite:
         response_code = response.status
 
         if response_code != 200:
-            api_info = endpoint
             api_info['response_code'] = response_code
 
             try:
