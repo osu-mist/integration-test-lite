@@ -1,8 +1,7 @@
 # Integration Test Lite
 
-Makes simple calls to APIs to confirm they return a 200 response code. If `allow_400` is `true`, a 400 response code
-will be allowed. If any APIs return an unexpected response, the exit code is 1 and the unsuccessful API calls are
-printed to STDOUT.
+Makes simple calls to APIs to confirm they return a 200 response code. If any APIs return a non-200 response, the exit
+code is 1 and the unsuccessful API calls are printed to STDOUT.
 
 All API calls are made with a random query parameter and random value in order to bypass any caching.
 
@@ -12,12 +11,12 @@ All API calls are made with a random query parameter and random value in order t
 
 2. Build the Docker image
 
-```shell
-$ docker build -t integration-test-lite .
-```
+   ```shell
+   $ docker build -t integration-test-lite .
+   ```
 
 3. Run the Docker container
 
-```shell
-$ docker run --rm -v "$PWD"/configuration.json:/usr/src/app/configuration.json:ro integration-test-lite
-```
+   ```shell
+   $ docker run --rm -v "$PWD"/configuration.json:/usr/src/app/configuration.json:ro integration-test-lite
+   ```
