@@ -14,12 +14,6 @@
             "base_url": "https://host.com/this_one_has_no_query_params",
             "query_params": {},
             "needs_access_token": false
-        },
-        {
-            "base_url": "https://host.com/400_response_is_allowed",
-            "query_params": {},
-            "needs_access_token": true,
-            "allow_400": true
         }
     ]
 }

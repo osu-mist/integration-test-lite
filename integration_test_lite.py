@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import sys
 from urllib.parse import urlencode
 import uuid
@@ -71,6 +72,24 @@ class IntegrationTestLite:
         query_params[uuid.uuid4().hex] = uuid.uuid4().hex
 
         url = endpoint['base_url']
+        api_info = endpoint
+
+        # Handle textbooks api request
+        textbooks_url_regex = r'.*/textbooks'
+        if re.match(textbooks_url_regex, url):
+            try:
+                terms_url = 'https://osu.verbacompare.com/compare/courses'
+                terms_response = await self.basic_request(terms_url, {}, False)
+                terms_json = await terms_response.json()
+                query_params['academicYear'], query_params['term'] = (
+                    terms_json[0]['id'].split('-')
+                )
+            except Exception as error:
+                api_info['error'] = (
+                    f'Exception when querying textbooks terms: {str(error)}'
+                )
+                return api_info
+
         response = await self.basic_request(
             url,
             query_params,
@@ -78,12 +97,7 @@ class IntegrationTestLite:
         )
         response_code = response.status
 
-        allowed_response_codes = [200]
-        if endpoint.get('allow_400'):
-            allowed_response_codes.append(400)
-
-        if response_code not in allowed_response_codes:
-            api_info = endpoint
+        if response_code != 200:
             api_info['response_code'] = response_code
 
             try:
