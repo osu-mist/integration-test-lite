@@ -20,7 +20,9 @@ class IntegrationTestLite:
     def __init__(self):
         config_data_file = open(sys.argv[1])
         self.config_json = json.load(config_data_file)
-        self.session = aiohttp.ClientSession()
+        self.timeout = self.config_json['request_timeout']
+        timeout = aiohttp.ClientTimeout(total=self.timeout)
+        self.session = aiohttp.ClientSession(timeout=timeout)
 
     async def __aenter__(self):
         return self
@@ -90,11 +92,15 @@ class IntegrationTestLite:
                 )
                 return api_info
 
-        response = await self.basic_request(
-            url,
-            query_params,
-            endpoint['needs_access_token']
-        )
+        try:
+            response = await self.basic_request(
+                url,
+                query_params,
+                endpoint['needs_access_token']
+            )
+        except asyncio.TimeoutError:
+            api_info['error'] = f'Timed out after {self.timeout} second(s)'
+            return api_info
         response_code = response.status
 
         if response_code != 200:
