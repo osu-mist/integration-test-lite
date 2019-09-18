@@ -2,6 +2,7 @@
     "token_api": "https://host.com/oauth2/token",
     "client_id": "secret",
     "client_secret": "sauce",
+    "request_timeout": 60,
     "target_endpoints": [
         {
             "base_url": "https://host.com/foo",
