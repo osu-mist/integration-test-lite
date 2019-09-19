@@ -157,8 +157,7 @@ async def main():
     bad_apis = await integration_test_lite.get_bad_apis()
 
     if bad_apis:
-        print()
-        print('The following API(s) returned errors:')
+        print('\nThe following API(s) returned errors:')
         pretty_print(bad_apis)
         sys.exit(1)
 
