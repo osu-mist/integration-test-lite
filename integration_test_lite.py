@@ -20,6 +20,7 @@ class IntegrationTestLite:
     def __init__(self):
         config_data_file = open(sys.argv[1])
         self.config_json = json.load(config_data_file)
+        self.access_token = None
         self.total = self.config_json['request_timeout']
         self.timeout = aiohttp.ClientTimeout(total=self.total)
 
@@ -86,7 +87,7 @@ class IntegrationTestLite:
             try:
                 terms_url = 'https://osu.verbacompare.com/compare/courses'
                 async with self.get_session() as session:
-                    async with  self.basic_request(
+                    async with self.basic_request(
                         session,
                         terms_url,
                         {},
@@ -96,11 +97,13 @@ class IntegrationTestLite:
                         query_params['academicYear'], query_params['term'] = (
                             terms_json[0]['id'].split('-')
                         )
-                        print(terms_json)
             except Exception as error:
                 api_info['error'] = (
-                    f'Exception when querying textbooks terms: {str(error)}'
+                    'Exception when querying textbooks terms: '
+                    f'{error.__class__.__name__}'
                 )
+                if str(error):
+                    api_info['error'] += f': {str(error)}'
                 return api_info
 
         try:
@@ -124,10 +127,8 @@ class IntegrationTestLite:
                                 'error': str(error)
                             }
                         return api_info
-                    else:
-                        query_param_string = urlencode(query_params)
-                        print(f'    [{response_code}] {url}?'
-                              '{query_param_string}')
+                    query_param_string = urlencode(query_params)
+                    print(f'    [{response_code}] {url}?{query_param_string}')
 
         except asyncio.TimeoutError:
             api_info['error'] = f'Timed out after {self.total} second(s)'
@@ -146,7 +147,6 @@ class IntegrationTestLite:
         results = await asyncio.gather(
             *[self.bad_response(endpoint) for endpoint in endpoints]
         )
-        print()
         # Return all results that weren't None
         return [result for result in results if result]
 
@@ -157,6 +157,7 @@ async def main():
     bad_apis = await integration_test_lite.get_bad_apis()
 
     if bad_apis:
+        print()
         print('The following API(s) returned errors:')
         pretty_print(bad_apis)
         sys.exit(1)
