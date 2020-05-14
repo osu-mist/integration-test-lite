@@ -160,7 +160,7 @@ def write_log(good_apis, bad_apis):
         'passed_tests': good_apis,
         'failed_tests': bad_apis
     }
-    with open('log.json', 'w') as f:
+    with open('./log.json', 'w') as f:
         json.dump(log, f, indent=4)
 
 
