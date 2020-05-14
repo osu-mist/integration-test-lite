@@ -23,6 +23,7 @@ class IntegrationTestLite:
         self.access_token = None
         self.total = self.config_json['request_timeout']
         self.timeout = aiohttp.ClientTimeout(total=self.total)
+        self.good_apis = []
 
     def get_session(self):
         return aiohttp.ClientSession(timeout=self.timeout)
@@ -116,19 +117,22 @@ class IntegrationTestLite:
                 ) as response:
 
                     response_code = response.status
-                    if response_code != 200:
-                        api_info['response_code'] = response_code
+                    api_info['response_code'] = response_code
 
-                        try:
-                            api_info['response_body'] = await response.json()
-                        except Exception as error:
-                            api_info['response_body'] = {
-                                'raw': await response.text(),
-                                'error': str(error)
-                            }
+                    try:
+                        api_info['response_body'] = await response.json()
+                    except Exception as error:
+                        api_info['response_body'] = {
+                            'raw': await response.text(),
+                            'error': str(error)
+                        }
+
+                    if response_code != 200:
                         return api_info
+
                     query_param_string = urlencode(query_params)
                     print(f'    [{response_code}] {url}?{query_param_string}')
+                    self.good_apis.append(api_info)
 
         except asyncio.TimeoutError:
             api_info['error'] = f'Timed out after {self.total} second(s)'
@@ -151,10 +155,20 @@ class IntegrationTestLite:
         return [result for result in results if result]
 
 
+def write_log(good_apis, bad_apis):
+    log = {
+        'passed_tests': good_apis,
+        'failed_tests': bad_apis
+    }
+    with open('log.json', 'w') as f:
+        json.dump(log, f, indent=4)
+
+
 async def main():
     integration_test_lite = IntegrationTestLite()
     await integration_test_lite.set_access_token()
     bad_apis = await integration_test_lite.get_bad_apis()
+    write_log(integration_test_lite.good_apis, bad_apis)
 
     if bad_apis:
         print('\nThe following API(s) returned errors:')
