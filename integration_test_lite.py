@@ -132,7 +132,8 @@ class IntegrationTestLite:
 
                     query_param_string = urlencode(query_params)
                     print(f'    [{response_code}] {url}?{query_param_string}')
-                    self.good_apis.append(api_info)
+                    # omit response body to reduce size of logfile
+                    self.good_apis.append({i: api_info[i] for i in api_info if i != 'response_body'})
 
         except asyncio.TimeoutError:
             api_info['error'] = f'Timed out after {self.total} second(s)'
