@@ -23,7 +23,6 @@ class IntegrationTestLite:
         self.access_token = None
         self.total = self.config_json['request_timeout']
         self.timeout = aiohttp.ClientTimeout(total=self.total)
-        self.good_apis = []
 
     def get_session(self):
         return aiohttp.ClientSession(timeout=self.timeout)
@@ -68,7 +67,7 @@ class IntegrationTestLite:
 
         return session.request(method, url, params=params, headers=headers)
 
-    async def bad_response(self, endpoint):
+    async def test_endpoint(self, endpoint):
         """Tests an endpoint for an unexpected response
 
         :param dict endpoint: The endpoint object from the config file
@@ -119,27 +118,26 @@ class IntegrationTestLite:
                     response_code = response.status
                     api_info['response_code'] = response_code
 
-                    try:
-                        api_info['response_body'] = await response.json()
-                    except Exception as error:
-                        api_info['response_body'] = {
-                            'raw': await response.text(),
-                            'error': str(error)
-                        }
-
+                    # only add response body if test was failure
                     if response_code != 200:
-                        return api_info
+                        try:
+                            api_info['response_body'] = await response.json()
+                        except Exception as error:
+                            api_info['response_body'] = {
+                                'raw': await response.text(),
+                                'error': str(error)
+                            }
+                    else:
+                        query_param_string = urlencode(query_params)
+                        print(f'    [{response_code}] {url}?{query_param_string}')
 
-                    query_param_string = urlencode(query_params)
-                    print(f'    [{response_code}] {url}?{query_param_string}')
-                    # omit response body to reduce size of logfile
-                    self.good_apis.append({i: api_info[i] for i in api_info if i != 'response_body'})
+                    return api_info
 
         except asyncio.TimeoutError:
             api_info['error'] = f'Timed out after {self.total} second(s)'
             return api_info
 
-    async def get_bad_apis(self):
+    async def get_api_status(self):
         """Tests all endpoints and returns a list of errors
 
         :returns: List of errors
@@ -150,10 +148,13 @@ class IntegrationTestLite:
         print('Passing cases:')
         # Execute all tests in parallel
         results = await asyncio.gather(
-            *[self.bad_response(endpoint) for endpoint in endpoints]
+            *[self.test_endpoint(endpoint) for endpoint in endpoints]
         )
-        # Return all results that weren't None
-        return [result for result in results if result]
+
+        good_apis = [result for result in results if result['response_code'] == 200]
+        bad_apis = [result for result in results if result['response_code'] != 200]
+
+        return good_apis, bad_apis
 
 
 def write_log(good_apis, bad_apis):
@@ -161,15 +162,15 @@ def write_log(good_apis, bad_apis):
         'passed_tests': good_apis,
         'failed_tests': bad_apis
     }
-    with open('./log.json', 'w') as f:
+    with open('api_status.json', 'w') as f:
         json.dump(log, f, indent=4)
 
 
 async def main():
     integration_test_lite = IntegrationTestLite()
     await integration_test_lite.set_access_token()
-    bad_apis = await integration_test_lite.get_bad_apis()
-    write_log(integration_test_lite.good_apis, bad_apis)
+    good_apis, bad_apis = await integration_test_lite.get_api_status()
+    write_log(good_apis, bad_apis)
 
     if bad_apis:
         print('\nThe following API(s) returned errors:')
