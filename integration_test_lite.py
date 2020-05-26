@@ -4,6 +4,7 @@ import re
 import sys
 from urllib.parse import urlencode
 import uuid
+from textwrap import indent
 
 import aiohttp
 
@@ -129,7 +130,7 @@ class IntegrationTestLite:
                             }
                     else:
                         query_param_string = urlencode(query_params)
-                        print(f'    [{response_code}] {url}?{query_param_string}')
+                        print(indent(f'[{response_code}] {url}?{query_param_string}', ' ' * 4))
 
                     return api_info
 
