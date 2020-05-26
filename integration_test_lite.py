@@ -69,10 +69,11 @@ class IntegrationTestLite:
         return session.request(method, url, params=params, headers=headers)
 
     async def test_endpoint(self, endpoint):
-        """Tests an endpoint for an unexpected response
+        """Tests an endpoint and returns data from the response
 
         :param dict endpoint: The endpoint object from the config file
-        :returns: None if the response was ok. Otherwise, an error object
+        :returns: api_info - contains the base url, query params, response code, needs_access_token, and if the request
+        errored, the full response body.
         :rtype: dict
         """
         query_params = endpoint['query_params']
@@ -139,10 +140,10 @@ class IntegrationTestLite:
             return api_info
 
     async def get_api_status(self):
-        """Tests all endpoints and returns a list of errors
+        """Tests all endpoints and returns a list containing both passed and failed tests
 
-        :returns: List of errors
-        :rtype: list
+        :returns: Dict containing 'passed_tests' and 'failed_tests'
+        :rtype: Dict
         """
         endpoints = self.config_json['target_endpoints']
 
