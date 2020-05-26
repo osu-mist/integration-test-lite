@@ -151,30 +151,31 @@ class IntegrationTestLite:
             *[self.test_endpoint(endpoint) for endpoint in endpoints]
         )
 
-        good_apis = [result for result in results if result['response_code'] == 200]
-        bad_apis = [result for result in results if result['response_code'] != 200]
+        good_apis = []
+        bad_apis = []
+        for result in results:
+            if result['response_code'] == 200:
+                good_apis.append(result)
+            else:
+                bad_apis.append(result)
 
-        return good_apis, bad_apis
-
-
-def write_log(good_apis, bad_apis):
-    log = {
-        'passed_tests': good_apis,
-        'failed_tests': bad_apis
-    }
-    with open('api_status.json', 'w') as f:
-        json.dump(log, f, indent=4)
+        return {
+            'passed_tests': good_apis,
+            'failed_tests': bad_apis
+        }
 
 
 async def main():
     integration_test_lite = IntegrationTestLite()
     await integration_test_lite.set_access_token()
-    good_apis, bad_apis = await integration_test_lite.get_api_status()
-    write_log(good_apis, bad_apis)
+    log = await integration_test_lite.get_api_status()
 
-    if bad_apis:
+    with open('api_status.json', 'w') as f:
+        json.dump(log, f, indent=4)
+
+    if log['failed_tests']:
         print('\nThe following API(s) returned errors:')
-        pretty_print(bad_apis)
+        pretty_print(log['failed_tests'])
         sys.exit(1)
 
 asyncio.run(main())
