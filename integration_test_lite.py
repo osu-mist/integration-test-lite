@@ -2,9 +2,9 @@ import asyncio
 import json
 import re
 import sys
+from textwrap import indent
 from urllib.parse import urlencode
 import uuid
-from textwrap import indent
 
 import aiohttp
 
