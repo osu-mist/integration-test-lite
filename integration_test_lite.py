@@ -2,7 +2,6 @@ import asyncio
 import json
 import re
 import sys
-from textwrap import indent
 from urllib.parse import urlencode
 import uuid
 
@@ -68,13 +67,11 @@ class IntegrationTestLite:
 
         return session.request(method, url, params=params, headers=headers)
 
-    async def test_endpoint(self, endpoint):
-        """Tests an endpoint and returns data from the response
+    async def bad_response(self, endpoint):
+        """Tests an endpoint for an unexpected response
 
         :param dict endpoint: The endpoint object from the config file
-        :returns: api_info - contains the base url, query params, response
-        code, needs_access_token, and if the request errored, the full response
-        body.
+        :returns: None if the response was ok. Otherwise, an error object
         :rtype: dict
         """
         query_params = endpoint['query_params']
@@ -119,10 +116,9 @@ class IntegrationTestLite:
                 ) as response:
 
                     response_code = response.status
-                    api_info['response_code'] = response_code
-
-                    # only add response body if test was failure
                     if response_code != 200:
+                        api_info['response_code'] = response_code
+
                         try:
                             api_info['response_body'] = await response.json()
                         except Exception as error:
@@ -130,56 +126,39 @@ class IntegrationTestLite:
                                 'raw': await response.text(),
                                 'error': str(error)
                             }
-                    else:
-                        query_param_string = urlencode(query_params)
-                        res = f'[{response_code}] {url}?{query_param_string}'
-                        print(indent(res, ' ' * 4))
-
-                    return api_info
+                        return api_info
+                    query_param_string = urlencode(query_params)
+                    print(f'    [{response_code}] {url}?{query_param_string}')
 
         except asyncio.TimeoutError:
             api_info['error'] = f'Timed out after {self.total} second(s)'
             return api_info
 
-    async def get_api_status(self):
-        """Tests all endpoints and returns a list containing both passed and
-        failed tests
-        :returns: Dict containing 'passed_tests' and 'failed_tests'
-        :rtype: Dict
+    async def get_bad_apis(self):
+        """Tests all endpoints and returns a list of errors
+
+        :returns: List of errors
+        :rtype: list
         """
         endpoints = self.config_json['target_endpoints']
 
         print('Passing cases:')
         # Execute all tests in parallel
         results = await asyncio.gather(
-            *[self.test_endpoint(endpoint) for endpoint in endpoints]
+            *[self.bad_response(endpoint) for endpoint in endpoints]
         )
-
-        good_apis = []
-        bad_apis = []
-        for result in results:
-            if result['response_code'] == 200:
-                good_apis.append(result)
-            else:
-                bad_apis.append(result)
-
-        return {
-            'passed_tests': good_apis,
-            'failed_tests': bad_apis
-        }
+        # Return all results that weren't None
+        return [result for result in results if result]
 
 
 async def main():
     integration_test_lite = IntegrationTestLite()
     await integration_test_lite.set_access_token()
-    api_status = await integration_test_lite.get_api_status()
+    bad_apis = await integration_test_lite.get_bad_apis()
 
-    with open('api_status.json', 'w') as f:
-        json.dump(api_status, f, indent=4)
-
-    if api_status['failed_tests']:
+    if bad_apis:
         print('\nThe following API(s) returned errors:')
-        pretty_print(api_status['failed_tests'])
+        pretty_print(bad_apis)
         sys.exit(1)
 
 asyncio.run(main())

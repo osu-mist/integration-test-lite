@@ -1,5 +1,4 @@
 configuration.json
-api_status.json
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -10,7 +9,6 @@ __pycache__/
 # Environments
 .env
 .venv
-.idea
 env/
 venv/
 ENV/
