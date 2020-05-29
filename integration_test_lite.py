@@ -72,8 +72,9 @@ class IntegrationTestLite:
         """Tests an endpoint and returns data from the response
 
         :param dict endpoint: The endpoint object from the config file
-        :returns: api_info - contains the base url, query params, response code, needs_access_token, and if the request
-        errored, the full response body.
+        :returns: api_info - contains the base url, query params, response
+        code, needs_access_token, and if the request errored, the full response
+        body.
         :rtype: dict
         """
         query_params = endpoint['query_params']
@@ -131,7 +132,8 @@ class IntegrationTestLite:
                             }
                     else:
                         query_param_string = urlencode(query_params)
-                        print(indent(f'[{response_code}] {url}?{query_param_string}', ' ' * 4))
+                        res = f'[{response_code}] {url}?{query_param_string}'
+                        print(indent(res, ' ' * 4))
 
                     return api_info
 
@@ -140,8 +142,8 @@ class IntegrationTestLite:
             return api_info
 
     async def get_api_status(self):
-        """Tests all endpoints and returns a list containing both passed and failed tests
-
+        """Tests all endpoints and returns a list containing both passed and
+        failed tests
         :returns: Dict containing 'passed_tests' and 'failed_tests'
         :rtype: Dict
         """
@@ -170,14 +172,14 @@ class IntegrationTestLite:
 async def main():
     integration_test_lite = IntegrationTestLite()
     await integration_test_lite.set_access_token()
-    log = await integration_test_lite.get_api_status()
+    api_status = await integration_test_lite.get_api_status()
 
     with open('api_status.json', 'w') as f:
-        json.dump(log, f, indent=4)
+        json.dump(api_status, f, indent=4)
 
-    if log['failed_tests']:
+    if api_status['failed_tests']:
         print('\nThe following API(s) returned errors:')
-        pretty_print(log['failed_tests'])
+        pretty_print(api_status['failed_tests'])
         sys.exit(1)
 
 asyncio.run(main())
